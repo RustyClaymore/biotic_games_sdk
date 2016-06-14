@@ -7,11 +7,14 @@ import android.hardware.Camera;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.ZoomControls;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -115,6 +118,10 @@ public class SoccerGameActivity extends BioticGameActivity implements JoystickLi
 
     private TextObject mSpeedText;
 
+    private ZoomControls zoom;
+
+    private static final String TAG = SoccerGameActivity.class.getSimpleName();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setContentView(R.layout.activity_soccer_game);
@@ -133,7 +140,7 @@ public class SoccerGameActivity extends BioticGameActivity implements JoystickLi
         mSoundIdCrowdCheer = mSoundPool.load(this, R.raw.crowd_cheer, SOUND_POOL_PRIORITY);
         mSoundIdBounceBall = mSoundPool.load(this, R.raw.bounce_ball, SOUND_POOL_PRIORITY);
 
-        connectToJoystick(this, "00:06:66:67:E8:99");
+        zoom = (ZoomControls) findViewById(R.id.zoomControls);
 
         Intent intent = getIntent();
         boolean tutorialMode = intent.getBooleanExtra(EXTRA_TUTORIAL_MODE, false);
@@ -143,6 +150,32 @@ public class SoccerGameActivity extends BioticGameActivity implements JoystickLi
             findViewById(R.id.tutorial_layout).setVisibility(View.VISIBLE);
             updateTutorialViews();
         }
+
+        zoom.setOnZoomInClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                CameraView cameraView = getCameraView();
+
+                Camera.Parameters params = cameraView.getCameraParameters();
+                if(params.getZoom() < params.getMaxZoom() -  params.getMaxZoom()/10)
+                    params.setZoom(params.getZoom() + params.getMaxZoom()/10);
+                cameraView.setCameraParameters(params);
+            }
+        });
+
+        zoom.setOnZoomOutClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                CameraView cameraView = getCameraView();
+
+                Camera.Parameters params = cameraView.getCameraParameters();
+                if(params.getZoom() > params.getMaxZoom()/10)
+                    params.setZoom(params.getZoom() - params.getMaxZoom()/10);
+                cameraView.setCameraParameters(params);
+            }
+        });
     }
 
     @Override
@@ -464,6 +497,8 @@ public class SoccerGameActivity extends BioticGameActivity implements JoystickLi
 
         // Find all things that look like Euglena in the region of interest.
         List<Point> euglenaLocations = ImageProcessing.findEuglenaInRoi(frame, roi);
+
+        Log.d(TAG, "Number of euglenas : " + euglenaLocations.size());
 
         // Find the location of the Euglena that is closest to the ball.
         return MathUtil.findClosestPoint(ballLocation, euglenaLocations);
